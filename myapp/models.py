@@ -16,15 +16,21 @@ class User(models.Model):
 
 class Note(models.Model):
     title = models.CharField(max_length=100)
-    content = models.JSONField(blank=True, null=True, default=list)
-    media = models.JSONField(blank=True, null=True, default=list)
     user_id = models.CharField(default='0', max_length=5, primary_key=True)
     note_id = models.CharField(default='0', max_length=5)
+    content_num = models.IntegerField(default=0)
     create_time = models.DateTimeField(auto_now_add=True)
     last_edit_time = models.DateTimeField(auto_now=True)
     tags = models.JSONField(blank=True, null=True, default=list)
 
+class Content(models.Model):
+    note_id = models.CharField(default='0', max_length=5)
+    content_id = models.CharField(default='0', max_length=5, primary_key=True)
+    order = models.IntegerField(default=0)
+    type = models.CharField(max_length=20)
+    content = models.CharField()
 
 class Counter(models.Model):
     user_num = models.IntegerField(default=0)
     note_num = models.IntegerField(default=0)
+    content_num = models.IntegerField(default=0)

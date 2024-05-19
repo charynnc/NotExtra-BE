@@ -29,6 +29,9 @@ urlpatterns = [
     path("user_info/", views.user_info, name='user_info'),
     path("change_info/", views.change_info, name='change_info'),
     path("change_avatar/", views.change_avatar, name='change_avatar'),
+    path("change_password/", views.change_password, name='change_password'),
+    path("new_note/", views.new_note, name='new_note'),
+    path("new_content/", views.new_content, name='new_content'),
     path("init/", views.init, name='init'),
 ]
 
