@@ -31,8 +31,12 @@ urlpatterns = [
     path("change_avatar/", views.change_avatar, name='change_avatar'),
     path("change_password/", views.change_password, name='change_password'),
     path("new_note/", views.new_note, name='new_note'),
-    path("new_content/", views.new_content, name='new_content'),
+    path("change_content/", views.change_content, name='change_content'),
     path("all_notes/", views.all_notes, name='all_notes'),
+    path("delete_content/", views.delete_content, name='delete_content'),
+    path("delete_note/", views.delete_note, name='delete_note'),
+    path("classify_note/", views.classify_note, name='classify_note'),
+    path("view_note/", views.view_note, name='view_note'),
     path("init/", views.init, name='init'),
 ]
 
