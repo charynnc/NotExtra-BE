@@ -32,6 +32,7 @@ urlpatterns = [
     path("change_password/", views.change_password, name='change_password'),
     path("new_note/", views.new_note, name='new_note'),
     path("new_content/", views.new_content, name='new_content'),
+    path("all_notes/", views.all_notes, name='all_notes'),
     path("init/", views.init, name='init'),
 ]
 

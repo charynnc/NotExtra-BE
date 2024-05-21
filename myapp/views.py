@@ -1,7 +1,8 @@
+import base64
 import os
 from django.http import JsonResponse
 from django.shortcuts import render
-from .models import User, Counter,Note,Content
+from .models import User, Counter, Note, Content
 from django.views.decorators.csrf import csrf_exempt
 import json
 import random
@@ -72,11 +73,18 @@ def log_out(request):
 
 @csrf_exempt
 def change_avatar(request):
+    print(request.POST)
     user_id = request.POST.get("user_id")
     auth_id = request.POST.get("auth_id")
 
-    file = request.FILES
-    avatar = file.get("avatar", None).read()
+    # file = request.FILES
+    # avatar = file.get("avatar", None).read()
+    avatar_base64 = request.POST.get("avatar")
+    try:
+        avatar_data = base64.b64decode(avatar_base64)
+    except Exception as e:
+        print(e)
+        return JsonResponse({'status': 'error', 'message': 'Invalid base64 string.'})
 
     user = User.objects.filter(user_id=user_id)
     if user:
@@ -87,7 +95,7 @@ def change_avatar(request):
         random_string = ''.join(random.choice(
             string.ascii_letters + string.digits) for _ in range(4))
         with open('media/user/'+user_id+'_'+random_string+'.jpg', 'wb') as f:
-            f.write(avatar)
+            f.write(avatar_data)
         user.avatar = host_name+'media/user/'+user_id+'_'+random_string+'.jpg'
         user.save()
 
@@ -119,6 +127,7 @@ def change_info(request):
     else:
         return JsonResponse({"status": "refuse", "msg": "用户不存在"})
 
+
 @csrf_exempt
 def change_password(request):
     print(request.POST)
@@ -142,6 +151,7 @@ def change_password(request):
     else:
         return JsonResponse({"status": "refuse", "msg": "用户不存在"})
 
+
 def user_info(request):
     print(request.GET)
     user_id = request.GET.get("user_id")
@@ -159,6 +169,7 @@ def user_info(request):
             return JsonResponse(data)
     else:
         return JsonResponse({"status": "refuse", "msg": "用户不存在"})
+
 
 @csrf_exempt
 def new_note(request):
@@ -182,7 +193,8 @@ def new_note(request):
             return JsonResponse({"status": "success", "msg": "创建成功"})
     else:
         return JsonResponse({"status": "refuse", "msg": "用户不存在"})
-    
+
+
 @csrf_exempt
 def new_content(request):
     print(request.POST)
@@ -190,7 +202,7 @@ def new_content(request):
     auth_id = request.POST.get("auth_id")
     note_id = request.POST.get("note_id")
     type = request.POST.get("type")
-    
+    order = request.POST.get("order")
 
     user = User.objects.filter(user_id=user_id)
     if user:
@@ -201,7 +213,7 @@ def new_content(request):
             # 生成content
             if type == "text":
                 content = request.POST.get("content")
-            else :
+            else:
                 # 如果是文件，保存后记录url
                 file = request.FILES.get("content", None)
                 random_string = ''.join(random.choice(
@@ -211,7 +223,7 @@ def new_content(request):
                 with open(path, 'wb') as f:
                     f.write(file.read())
                 content = host_name+path
-            
+
             note = Note.objects.filter(note_id=note_id)
             if note:
                 note = note[0]
@@ -220,13 +232,59 @@ def new_content(request):
                 content_id = str(counter.content_num + 1)
                 counter.content_num += 1
                 counter.save()
-                Content.objects.create(note_id=note_id, content_id=content_id,order=note.content_num,
-                                        type=type, content=content)
+
+                # 更新已有content的order
+                if int(order) < note.content_num:
+                    contents = Content.objects.filter(
+                        note_id=note_id, order__gte=int(order))
+                    for content in contents:
+                        content.order += 1
+                        content.save()
+
+                Content.objects.create(note_id=note_id, content_id=content_id, order=int(order),
+                                       type=type, content=content)
                 note.save()
 
             return JsonResponse({"status": "success", "msg": "创建成功"})
     else:
         return JsonResponse({"status": "refuse", "msg": "用户不存在"})
+
+
+def all_notes(request):
+    print(request.GET)
+    user_id = request.GET.get("user_id")
+    auth_id = request.GET.get("auth_id")
+
+    user = User.objects.filter(user_id=user_id)
+    if user:
+        user = user[0]
+        if user.auth_id != auth_id:
+            return JsonResponse({"status": "refuse", "msg": "用户未登录"})
+        else:
+            notes = Note.objects.filter(user_id=user_id)
+            data = []
+            for note in notes:
+                # 生成摘要
+                contents = Content.objects.filter(note_id=note.note_id)
+                if contents:
+                    content = contents[0]
+                    if content.type == "text":
+                        abstract = content.content[:20]
+                    elif content.type == "image":
+                        abstract = "[图片]"
+                    elif content.type == "audio":
+                        abstract = "[音频]"
+                    elif content.type == "video":
+                        abstract = "[视频]"
+                    else:
+                        abstract = ""
+
+                data.append({"note_id": note.note_id, "title": note.title,
+                             "create_time": note.create_time.strftime("%Y-%m-%d %H:%M:%S"), "last_edit_time": note.last_edit_time.strftime("%Y-%m-%d %H:%M:%S"), "abstract": abstract, "tags": note.tags})
+            return JsonResponse({"status": "success", "msg": "查询成功", "data": data})
+    else:
+        return JsonResponse({"status": "refuse", "msg": "用户不存在"})
+
 
 def init(request):
     for user in User.objects.all():
